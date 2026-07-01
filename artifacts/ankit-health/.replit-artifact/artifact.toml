@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Ankit Health"
+version = "1.0.0"
+id = "artifacts/ankit-health"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20978
+
+[services.development]
+run = "pnpm --filter @workspace/ankit-health run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ankit-health", "run", "build" ]
+publicDir = "artifacts/ankit-health/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20978"
+BASE_PATH = "/"
