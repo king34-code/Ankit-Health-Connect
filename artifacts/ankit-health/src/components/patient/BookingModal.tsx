@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 type BookingModalProps = {
   doctor: any;
@@ -213,129 +214,154 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6">
-          {step === 1 && (
-            <div className="space-y-4">
-              <h3 className="font-medium text-foreground">Select a Date</h3>
-              <div className="flex justify-center p-4 bg-muted/10 border border-border rounded-xl">
-                {loading && availability.length === 0 ? (
-                  <Spinner className="w-6 h-6 text-primary my-12" />
-                ) : (
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    disabled={isDateDisabled}
-                    className="rounded-md"
-                  />
-                )}
-              </div>
-            </div>
-          )}
+        <div className="p-6 overflow-hidden">
+          {/* Step progress bar */}
+          <div className="flex items-center gap-2 mb-6">
+            {[1, 2, 3].map((s) => (
+              <React.Fragment key={s}>
+                <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all duration-300 ${
+                  step >= s ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                }`}>{s}</div>
+                {s < 3 && <div className={`flex-1 h-0.5 transition-all duration-500 ${step > s ? "bg-primary" : "bg-muted"}`} />}
+              </React.Fragment>
+            ))}
+          </div>
 
-          {step === 2 && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-foreground">Select a Time Slot</h3>
-                  <p className="text-sm text-muted-foreground">{selectedDate && format(selectedDate, "EEEE, d MMMM yyyy")}</p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={() => setStep(1)}>Change Date</Button>
-              </div>
-
-              {loading ? (
-                <div className="py-12 flex justify-center"><Spinner className="w-6 h-6 text-primary" /></div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3 max-h-[250px] overflow-y-auto pr-2 pb-2">
-                  {generateTimeSlots().map(slot => (
-                    <Button
-                      key={slot.value}
-                      variant={selectedTime === slot.value ? "default" : "outline"}
-                      className={`w-full ${slot.booked ? "opacity-50 cursor-not-allowed" : ""}`}
-                      disabled={slot.booked}
-                      onClick={() => setSelectedTime(slot.value)}
-                    >
-                      {slot.label}
-                    </Button>
-                  ))}
-                  {generateTimeSlots().length === 0 && (
-                    <div className="col-span-3 text-center py-4 text-muted-foreground text-sm">
-                      No slots available on this date.
-                    </div>
+          <AnimatePresence mode="wait">
+            {step === 1 && (
+              <motion.div key="step1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="space-y-4">
+                <h3 className="font-medium text-foreground">Select a Date</h3>
+                <div className="flex justify-center p-4 bg-muted/10 border border-border rounded-xl">
+                  {loading && availability.length === 0 ? (
+                    <Spinner className="w-6 h-6 text-primary my-12" />
+                  ) : (
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={handleDateSelect}
+                      disabled={isDateDisabled}
+                      className="rounded-md"
+                    />
                   )}
                 </div>
-              )}
+              </motion.div>
+            )}
 
-              {selectedTime && (
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Reason for visit (Optional)</label>
-                    <Textarea 
-                      placeholder="Briefly describe your symptoms..."
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      className="resize-none"
-                    />
+            {step === 2 && (
+              <motion.div key="step2" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-foreground">Select a Time Slot</h3>
+                    <p className="text-sm text-muted-foreground">{selectedDate && format(selectedDate, "EEEE, d MMMM yyyy")}</p>
                   </div>
-                  
-                  <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
-                    <span className="font-medium text-foreground">Consultation Fee</span>
-                    <span className="font-bold text-lg text-foreground">₹{doctor?.consultation_fee}</span>
-                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => setStep(1)}>Change Date</Button>
+                </div>
 
+                {loading ? (
+                  <div className="py-12 flex justify-center"><Spinner className="w-6 h-6 text-primary" /></div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-3 max-h-[250px] overflow-y-auto pr-2 pb-2">
+                    {generateTimeSlots().map(slot => (
+                      <Button
+                        key={slot.value}
+                        variant={selectedTime === slot.value ? "default" : "outline"}
+                        className={`w-full ${slot.booked ? "opacity-50 cursor-not-allowed" : ""}`}
+                        disabled={slot.booked}
+                        onClick={() => setSelectedTime(slot.value)}
+                      >
+                        {slot.label}
+                      </Button>
+                    ))}
+                    {generateTimeSlots().length === 0 && (
+                      <div className="col-span-3 text-center py-4 text-muted-foreground text-sm">
+                        No slots available on this date.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedTime && (
+                  <div className="space-y-3 pt-4 border-t border-border">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground">Reason for visit (Optional)</label>
+                      <Textarea 
+                        placeholder="Briefly describe your symptoms..."
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                        className="resize-none"
+                      />
+                    </div>
+                    
+                    <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
+                      <span className="font-medium text-foreground">Consultation Fee</span>
+                      <span className="font-bold text-lg text-foreground">₹{doctor?.consultation_fee}</span>
+                    </div>
+
+                    <Button 
+                      className="w-full text-base h-12 mt-2" 
+                      onClick={handleCreateAppointmentAndPay}
+                      disabled={loading}
+                    >
+                      {loading && <Spinner className="w-4 h-4 mr-2" />}
+                      Confirm & Proceed to Payment
+                    </Button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div key="step3" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="text-center py-8 space-y-6">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  className="mx-auto w-20 h-20 rounded-full bg-accent/10 flex items-center justify-center"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.15, 1] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="w-14 h-14 rounded-full bg-accent/20 flex items-center justify-center"
+                  >
+                    <CheckCircle2 className="w-8 h-8 text-accent" />
+                  </motion.div>
+                </motion.div>
+                
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-foreground">Complete Your Payment</h3>
+                  <p className="text-muted-foreground mt-2">
+                    A payment window should have opened securely. Please complete the transaction of ₹{doctor?.consultation_fee} to confirm your appointment.
+                  </p>
+                </div>
+
+                <div className="space-y-3 max-w-sm mx-auto pt-6">
                   <Button 
-                    className="w-full text-base h-12 mt-2" 
-                    onClick={handleCreateAppointmentAndPay}
+                    className="w-full h-12" 
+                    onClick={handleCheckPayment}
                     disabled={loading}
                   >
                     {loading && <Spinner className="w-4 h-4 mr-2" />}
-                    Confirm & Proceed to Payment
+                    I've Paid — Confirm Appointment
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12" 
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                         const res = await edgeFn("razorpay-create-payment-link", { appointment_id: createdAppointment.id }, session!.access_token);
+                         if (res.payment_link_url) window.open(res.payment_link_url, "_blank");
+                      } finally { setLoading(false); }
+                    }}
+                    disabled={loading}
+                  >
+                    Re-open Payment Page ↗
                   </Button>
                 </div>
-              )}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="text-center py-8 space-y-6">
-              <div className="mx-auto w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-6">
-                <AlertCircle className="w-8 h-8" />
-              </div>
-              
-              <div>
-                <h3 className="text-2xl font-serif font-bold text-foreground">Complete Your Payment</h3>
-                <p className="text-muted-foreground mt-2">
-                  A payment window should have opened securely. Please complete the transaction of ₹{doctor?.consultation_fee} to confirm your appointment.
-                </p>
-              </div>
-
-              <div className="space-y-3 max-w-sm mx-auto pt-6">
-                <Button 
-                  className="w-full h-12" 
-                  onClick={handleCheckPayment}
-                  disabled={loading}
-                >
-                  {loading && <Spinner className="w-4 h-4 mr-2" />}
-                  I've Paid — Confirm Appointment
-                </Button>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full h-12" 
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                       const res = await edgeFn("razorpay-create-payment-link", { appointment_id: createdAppointment.id }, session!.access_token);
-                       if (res.payment_link_url) window.open(res.payment_link_url, "_blank");
-                    } finally { setLoading(false); }
-                  }}
-                  disabled={loading}
-                >
-                  Re-open Payment Page ↗
-                </Button>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </DialogContent>
     </Dialog>

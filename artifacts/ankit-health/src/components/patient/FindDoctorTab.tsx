@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { Search, MapPin, Briefcase, Award } from "lucide-react";
 import BookingModal from "./BookingModal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type Doctor = {
   id: string;
@@ -76,7 +77,7 @@ export default function FindDoctorTab() {
       <div className="relative max-w-xl">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
         <Input 
-          className="pl-10 h-12 text-base" 
+          className="pl-10 h-12 text-base input-glow" 
           placeholder="Search by name, specialty, or hospital..." 
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -84,7 +85,20 @@ export default function FindDoctorTab() {
       </div>
 
       {loading ? (
-        <div className="py-12 flex justify-center"><Spinner className="w-8 h-8 text-primary" /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-card border border-border rounded-xl p-6 space-y-4">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <div className="pt-4 border-t border-border flex items-center justify-between">
+                <Skeleton className="h-6 w-20" />
+                <Skeleton className="h-9 w-28" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : filteredDoctors.length === 0 ? (
         <div className="text-center py-16 bg-card border border-border rounded-xl">
           <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -94,7 +108,7 @@ export default function FindDoctorTab() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {filteredDoctors.map(doctor => (
-            <div key={doctor.id} className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col" data-testid={`doctor-card-${doctor.id}`}>
+            <div key={doctor.id} className="bg-card border border-border rounded-xl p-6 shadow-sm flex flex-col doctor-card-hover" data-testid={`doctor-card-${doctor.id}`}>
               <div className="flex-1 space-y-4">
                 <div>
                   <h3 className="text-xl font-serif font-bold text-foreground">Dr. {doctor.profile?.full_name}</h3>
