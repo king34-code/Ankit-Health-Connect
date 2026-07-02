@@ -253,7 +253,7 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <RevealSection>
             <motion.div variants={fadeUp} custom={0} className="text-center mb-14">
-              <p className="text-accent font-medium text-sm uppercase tracking-widest mb-3">Why Ankit Health</p>
+              <p className="text-accent font-medium text-sm uppercase tracking-widest mb-3">Why MedBook</p>
               <h2 className="text-4xl font-serif font-bold text-primary">Healthcare that works for you</h2>
             </motion.div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -299,7 +299,7 @@ export default function Home() {
               <TestimonialCard
                 delay={1}
                 rating={5}
-                quote="I booked a cardiologist appointment within minutes. No more calling up clinics and being put on hold for 20 minutes. Ankit Health is a game changer."
+                quote="I booked a cardiologist appointment within minutes. No more calling up clinics and being put on hold for 20 minutes. MedBook is a game changer."
                 name="Priya S."
                 location="Mumbai, Maharashtra"
               />
@@ -327,7 +327,7 @@ export default function Home() {
         <RevealSection className="container mx-auto px-4">
           <motion.div variants={fadeUp} custom={0}>
             <h2 className="text-4xl font-serif font-bold mb-4">Ready to get started?</h2>
-            <p className="text-white/70 text-lg mb-8 max-w-xl mx-auto">Join thousands of patients who manage their health with Ankit Health.</p>
+            <p className="text-white/70 text-lg mb-8 max-w-xl mx-auto">Join thousands of patients who manage their health with MedBook.</p>
             <Button
               size="lg"
               className="bg-white text-primary hover:bg-white/90 text-lg px-10 py-6 h-auto font-medium btn-interactive shadow-xl"
@@ -349,7 +349,7 @@ export default function Home() {
                   <rect x="10" y="2" width="4" height="20" rx="2" fill="white"/>
                   <rect x="2" y="10" width="20" height="4" rx="2" fill="white"/>
                 </svg>
-                <span className="font-serif font-bold text-white text-lg">Ankit Health</span>
+                <span className="font-serif font-bold text-white text-lg">MedBook</span>
               </div>
               <p className="text-sm leading-relaxed max-w-sm text-white/60">
                 India's trusted digital platform for doctor appointments. Verified specialists, instant booking, secure payments.
@@ -373,7 +373,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/40">
-            <span>© {new Date().getFullYear()} Ankit Health. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} MedBook. All rights reserved.</span>
             <span>Made with care in India 🇮🇳</span>
           </div>
         </div>

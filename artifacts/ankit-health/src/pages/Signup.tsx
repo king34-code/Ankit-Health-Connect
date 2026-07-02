@@ -81,7 +81,7 @@ export default function Signup() {
         <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-lg p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-serif font-bold text-card-foreground">Create an Account</h1>
-            <p className="text-muted-foreground mt-2">Join Ankit Health today</p>
+            <p className="text-muted-foreground mt-2">Join MedBook today</p>
           </div>
 
           <Form {...form}>
