@@ -13,6 +13,7 @@ import PatientDashboard from "@/pages/patient/Dashboard";
 import DoctorOnboarding from "@/pages/doctor/Onboarding";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { Spinner } from "@/components/ui/spinner";
+import AdminPage from "@/pages/Admin";
 
 const queryClient = new QueryClient();
 
@@ -61,7 +62,15 @@ function Router() {
       <Route path="/patient/dashboard">
         {() => <ProtectedRoute component={PatientDashboard} allowedRole="patient" />}
       </Route>
-      
+
+      <Route path="/admin">
+        {() => (
+          <ProtectedLayout>
+            <AdminPage />
+          </ProtectedLayout>
+        )}
+      </Route>
+
       <Route component={NotFound} />
     </Switch>
   );
