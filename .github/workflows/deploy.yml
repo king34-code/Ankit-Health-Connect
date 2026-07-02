@@ -21,11 +21,12 @@ jobs:
         with:
           node-version: 20
           cache: 'pnpm'
-      - run: pnpm install --no-frozen-lockfile
-      - run: npx vite build --base=/Ankit-Health-Connect/
+          cache-dependency-path: artifacts/ankit-health/pnpm-lock.yaml
+      - run: cd artifacts/ankit-health && pnpm install --no-frozen-lockfile
+      - run: cd artifacts/ankit-health && npx vite build --base=/Ankit-Health-Connect/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./artifacts/ankit-health/dist
 
   deploy:
     needs: build
