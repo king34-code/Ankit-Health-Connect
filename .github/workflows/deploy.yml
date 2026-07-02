@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 20
       - run: cd artifacts/ankit-health && pnpm install --no-frozen-lockfile
-    - run: cd artifacts/ankit-health && PORT=3000 npx vite build --base=/Ankit-Health-Connect/
+      - run: cd artifacts/ankit-health && PORT=3000 npx vite build --base=/Ankit-Health-Connect/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./artifacts/ankit-health/dist
