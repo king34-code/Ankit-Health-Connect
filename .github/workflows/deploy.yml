@@ -22,7 +22,7 @@ jobs:
           node-version: 20
           cache: 'pnpm'
       - run: pnpm install --no-frozen-lockfile
-      - run: pnpm run build -- --base=/Ankit-Health-Connect/
+      - run: npx vite build --base=/Ankit-Health-Connect/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
