@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { format, addDays, startOfDay, parseISO, isBefore, isSameDay } from "date-fns";
+import { format, startOfDay, isBefore } from "date-fns";
 import { supabase, edgeFn } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -14,7 +14,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type BookingModalProps = {
@@ -24,14 +24,15 @@ type BookingModalProps = {
 };
 
 export default function BookingModal({ doctor, open, onOpenChange }: BookingModalProps) {
-  const { user, session } = useAuth();
+  const { user, session, profile } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
-  
+  const [confirmed, setConfirmed] = useState(false);
+
   // Data
   const [availability, setAvailability] = useState<any[]>([]);
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
-  
+
   // Selection
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
       setSelectedTime(null);
       setReason("");
       setCreatedAppointment(null);
+      setConfirmed(false);
       fetchAvailability();
     }
   }, [open, doctor?.id]);
@@ -63,7 +65,7 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
         .from("doctor_availability")
         .select("*")
         .eq("doctor_id", doctor.id);
-        
+
       if (error) throw error;
       setAvailability(data || []);
     } catch (error) {
@@ -78,14 +80,14 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
     try {
       setLoading(true);
       const dateStr = format(date, "yyyy-MM-dd");
-      
+
       const { data, error } = await supabase
         .from("appointments")
         .select("appointment_time")
         .eq("doctor_id", doctor.id)
         .eq("appointment_date", dateStr)
         .in("status", ["confirmed", "pending_payment"]);
-        
+
       if (error) throw error;
       setBookedSlots(data?.map(a => a.appointment_time) || []);
     } catch (error) {
@@ -104,11 +106,11 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
 
   const handleCreateAppointmentAndPay = async () => {
     if (!selectedDate || !selectedTime || !user || !session) return;
-    
+
     setLoading(true);
     try {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      
+
       // 1. Create Appointment
       const { data: appointment, error: aptError } = await supabase
         .from("appointments")
@@ -122,25 +124,25 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
         })
         .select()
         .single();
-        
+
       if (aptError) throw aptError;
       setCreatedAppointment(appointment);
 
       // 2. Generate Payment Link
       const res = await edgeFn("razorpay-create-payment-link", { appointment_id: appointment.id }, session.access_token);
-      
+
       if (res.error) throw new Error(res.error);
-      
+
       if (res.payment_link_url) {
         window.open(res.payment_link_url, "_blank");
         setStep(3);
       } else {
         throw new Error("Invalid response from payment gateway");
       }
-      
+
     } catch (error: any) {
       toast.error(error.message || "Failed to initiate booking. Please try again.");
-      if (createdAppointment) setStep(3); // Go to step 3 anyway to allow retry
+      if (createdAppointment) setStep(3);
     } finally {
       setLoading(false);
     }
@@ -151,10 +153,32 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
     setLoading(true);
     try {
       const res = await edgeFn("razorpay-check-payment", { appointment_id: createdAppointment.id }, session.access_token);
-      
+
       if (res.success) {
-        toast.success("Payment confirmed successfully!");
-        onOpenChange(false);
+        // Fetch doctor's phone number from profiles
+        const { data: doctorProfile } = await supabase
+          .from("profiles")
+          .select("phone, full_name")
+          .eq("id", doctor.id)
+          .single();
+
+        // Open WhatsApp deep link if phone is available
+        if (doctorProfile?.phone) {
+          const phoneDigits = doctorProfile.phone.replace(/\D/g, "");
+          const patientName = profile?.full_name || user?.email || "A patient";
+          const apptDate = selectedDate ? format(selectedDate, "d MMM yyyy") : createdAppointment.appointment_date;
+          const apptTime = selectedTime
+            ? format(new Date(`2000-01-01T${selectedTime}`), "h:mm a")
+            : createdAppointment.appointment_time;
+          const apptReason = reason.trim() || createdAppointment.reason || "Not specified";
+
+          const message = `New appointment booked: ${patientName} on ${apptDate} at ${apptTime}. Reason: ${apptReason}. Booked via Sample Health.`;
+          const waUrl = `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
+          window.open(waUrl, "_blank");
+        }
+
+        toast.success("Appointment confirmed!");
+        setConfirmed(true);
       } else {
         toast.error("Payment not confirmed yet. If you just paid, please wait a moment and try again.");
       }
@@ -169,7 +193,7 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
   const isDateDisabled = (date: Date) => {
     const today = startOfDay(new Date());
     if (isBefore(date, today)) return true;
-    
+
     const dayOfWeek = date.getDay();
     return !availability.some(a => a.day_of_week === dayOfWeek);
   };
@@ -215,20 +239,64 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
         </DialogHeader>
 
         <div className="p-6 overflow-hidden">
-          {/* Step progress bar */}
-          <div className="flex items-center gap-2 mb-6">
-            {[1, 2, 3].map((s) => (
-              <React.Fragment key={s}>
-                <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all duration-300 ${
-                  step >= s ? "bg-primary text-white" : "bg-muted text-muted-foreground"
-                }`}>{s}</div>
-                {s < 3 && <div className={`flex-1 h-0.5 transition-all duration-500 ${step > s ? "bg-primary" : "bg-muted"}`} />}
-              </React.Fragment>
-            ))}
-          </div>
+          {/* Step progress bar — hidden on confirmation screen */}
+          {!confirmed && (
+            <div className="flex items-center gap-2 mb-6">
+              {[1, 2, 3].map((s) => (
+                <React.Fragment key={s}>
+                  <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all duration-300 ${
+                    step >= s ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                  }`}>{s}</div>
+                  {s < 3 && <div className={`flex-1 h-0.5 transition-all duration-500 ${step > s ? "bg-primary" : "bg-muted"}`} />}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
-            {step === 1 && (
+
+            {/* ── Confirmed success screen ── */}
+            {confirmed && (
+              <motion.div
+                key="confirmed"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="text-center py-8 space-y-6"
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 260, damping: 20 }}
+                  className="mx-auto w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center"
+                >
+                  <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+                </motion.div>
+
+                <div>
+                  <h3 className="text-2xl font-serif font-bold text-foreground">Appointment Confirmed!</h3>
+                  <p className="text-muted-foreground mt-2 text-sm">
+                    Your appointment with Dr. {doctor?.profile?.full_name} has been booked successfully.
+                  </p>
+                </div>
+
+                {/* WhatsApp note */}
+                <div className="flex items-center gap-3 bg-[#25D36615] border border-[#25D36630] rounded-xl px-4 py-3 max-w-sm mx-auto">
+                  <MessageCircle className="w-5 h-5 text-[#25D366] flex-shrink-0" />
+                  <p className="text-sm text-left text-foreground/80">
+                    We've opened a WhatsApp chat to notify the doctor — one click to send the message.
+                  </p>
+                </div>
+
+                <Button className="w-full h-12 max-w-sm" onClick={() => onOpenChange(false)}>
+                  Done
+                </Button>
+              </motion.div>
+            )}
+
+            {/* ── Step 1: Pick date ── */}
+            {!confirmed && step === 1 && (
               <motion.div key="step1" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="space-y-4">
                 <h3 className="font-medium text-foreground">Select a Date</h3>
                 <div className="flex justify-center p-4 bg-muted/10 border border-border rounded-xl">
@@ -247,7 +315,8 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
               </motion.div>
             )}
 
-            {step === 2 && (
+            {/* ── Step 2: Pick time + reason ── */}
+            {!confirmed && step === 2 && (
               <motion.div key="step2" initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25, ease: "easeInOut" }} className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -284,21 +353,21 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
                   <div className="space-y-3 pt-4 border-t border-border">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground">Reason for visit (Optional)</label>
-                      <Textarea 
+                      <Textarea
                         placeholder="Briefly describe your symptoms..."
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
                         className="resize-none"
                       />
                     </div>
-                    
+
                     <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
                       <span className="font-medium text-foreground">Consultation Fee</span>
                       <span className="font-bold text-lg text-foreground">₹{doctor?.consultation_fee}</span>
                     </div>
 
-                    <Button 
-                      className="w-full text-base h-12 mt-2" 
+                    <Button
+                      className="w-full text-base h-12 mt-2"
                       onClick={handleCreateAppointmentAndPay}
                       disabled={loading}
                     >
@@ -310,7 +379,8 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
               </motion.div>
             )}
 
-            {step === 3 && (
+            {/* ── Step 3: Complete payment ── */}
+            {!confirmed && step === 3 && (
               <motion.div key="step3" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.3, ease: "easeOut" }} className="text-center py-8 space-y-6">
                 <motion.div
                   initial={{ scale: 0 }}
@@ -326,7 +396,7 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
                     <CheckCircle2 className="w-8 h-8 text-accent" />
                   </motion.div>
                 </motion.div>
-                
+
                 <div>
                   <h3 className="text-2xl font-serif font-bold text-foreground">Complete Your Payment</h3>
                   <p className="text-muted-foreground mt-2">
@@ -335,23 +405,23 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
                 </div>
 
                 <div className="space-y-3 max-w-sm mx-auto pt-6">
-                  <Button 
-                    className="w-full h-12" 
+                  <Button
+                    className="w-full h-12"
                     onClick={handleCheckPayment}
                     disabled={loading}
                   >
                     {loading && <Spinner className="w-4 h-4 mr-2" />}
                     I've Paid — Confirm Appointment
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12" 
+
+                  <Button
+                    variant="outline"
+                    className="w-full h-12"
                     onClick={async () => {
                       setLoading(true);
                       try {
-                         const res = await edgeFn("razorpay-create-payment-link", { appointment_id: createdAppointment.id }, session!.access_token);
-                         if (res.payment_link_url) window.open(res.payment_link_url, "_blank");
+                        const res = await edgeFn("razorpay-create-payment-link", { appointment_id: createdAppointment.id }, session!.access_token);
+                        if (res.payment_link_url) window.open(res.payment_link_url, "_blank");
                       } finally { setLoading(false); }
                     }}
                     disabled={loading}
@@ -361,6 +431,7 @@ export default function BookingModal({ doctor, open, onOpenChange }: BookingModa
                 </div>
               </motion.div>
             )}
+
           </AnimatePresence>
         </div>
       </DialogContent>

@@ -17,7 +17,7 @@ export function Logo({ className }: { className?: string }) {
         />
       </svg>
       <span className="font-serif font-bold text-xl text-primary tracking-tight">
-        MedBook
+        Sample Health
       </span>
     </div>
   );
